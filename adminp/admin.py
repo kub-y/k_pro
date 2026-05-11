@@ -3,17 +3,22 @@ from django.contrib import admin
 from django.utils import timezone
 from django.conf import settings
 from django.contrib import messages
-from .models import KnowledgeBase
-from .models import BotUser
-from .models import Feedback
-from .models import UniversityGroups
+from .models import KnowledgeBase, BotUser, Feedback, UniversityGroups
 
 @admin.register(KnowledgeBase)
 class KnowledgeBaseAdmin(admin.ModelAdmin):
-    list_display = ('question', 'visibility', 'target_groups', 'has_file')
-    list_filter = ('visibility',)
-    search_fields = ('question', 'answer', 'target_groups')
+    list_display = ('question', 'get_target_groups', 'is_faq', 'has_file')
+    list_filter = ('is_faq', 'target_groups')
+    search_fields = ('question', 'answer')
+    filter_horizontal = ('target_groups',)
     exclude = ('search_vector',)
+
+    @admin.display(description='Доступно группам')
+    def get_target_groups(self, obj):
+        groups = obj.target_groups.all()
+        if groups.exists():
+            return ", ".join([g.name for g in groups])
+        return "Все группы"
 
     @admin.display(boolean=True, description='Файл')
     def has_file(self, obj):
@@ -22,6 +27,7 @@ class KnowledgeBaseAdmin(admin.ModelAdmin):
     @admin.display(description='Текст ответа')
     def answer_short(self, obj):
         return obj.answer[:100] + "..." if len(obj.answer) > 100 else obj.answer
+    
 @admin.register(BotUser)
 class BotUserAdmin(admin.ModelAdmin):
     list_display = ('max_user_id', 'role', 'group_number', 'created_at')
