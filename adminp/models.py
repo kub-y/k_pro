@@ -2,23 +2,31 @@ import os
 from django.db import models
 from django.contrib.postgres.search import SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
+
+class UniversityGroups(models.Model):
+    name = models.CharField(max_length=50, unique=True, verbose_name="Название группы")
+    is_active = models.BooleanField(default=True, verbose_name="Активна")
+
+    class Meta:
+        verbose_name = "Учебные группы"
+        verbose_name_plural = "Учебные группы"
+
+    def __str__(self):
+        return self.name
 
 class KnowledgeBase(models.Model):
-    VISIBILITY_CHOICES = [
-        ('all', 'Для всех'),
-        ('student', 'Только студентам'),
-        ('applicant', 'Только абитуриентам'),
-    ]
     question = models.CharField(max_length=255, verbose_name="Вопрос")
     answer = models.TextField(verbose_name="Ответ")
     file = models.FileField(upload_to='bot_files/', null=True, blank=True, verbose_name="Прикреплённый файл")
-    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='all', verbose_name="Кому доступен")
-    target_groups = models.CharField(max_length=255, null=True, blank=True, verbose_name="Для каких групп (через запятую)", help_text="Оставьте пустым, если вопрос для всех групп этой роли")
+    target_groups = models.ManyToManyField(UniversityGroups, blank=True, verbose_name="Кому доступен вопрос", help_text="Выберите группы (в т.ч. 'Абитуриенты'). Если пусто — доступно всем.")
     search_vector = SearchVectorField(null=True, blank=True, editable=False)
     is_faq = models.BooleanField(default=False, verbose_name="Показывать в частых вопросах")
+    
     class Meta:
-        verbose_name = "База знаний"
-        verbose_name_plural = "Базы знаний"
+        verbose_name = "Список вопросов"
+        verbose_name_plural = "Список вопросов"
         indexes = [GinIndex(fields=['search_vector'])]
     def __str__(self):
         return self.question
@@ -55,13 +63,7 @@ class Feedback(models.Model):
     def __str__(self):
         return f"Отзыв от {self.user.max_user_id} ({self.created_at.strftime('%d.%m %H:%M')})"
 
-class UniversityGroups(models.Model):
-    name = models.CharField(max_length=50, unique=True, verbose_name="Название группы")
-    is_active = models.BooleanField(default=True, verbose_name="Активна")
-
-    class Meta:
-        verbose_name = "Учебные группы"
-        verbose_name_plural = "Учебные группы"
-
-    def __str__(self):
-        return self.name
+@receiver(post_migrate)
+def create_default_groups(sender, **kwargs):
+    if sender.name == 'adminp':
+        UniversityGroups.objects.get_or_create(name="Абитуриенты")
