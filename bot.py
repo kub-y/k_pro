@@ -14,7 +14,7 @@ from asgiref.sync import sync_to_async
 from adminp.services import find_answer_for_user, register_max_user, save_feedback, get_faq_list
 from adminp.models import BotUser, UniversityGroups
 
-TOKEN = "f9LHodD0cOLzBrjTEdNthgfvCzKPHzp6suQuO14eCJWqnwpOCERXyNan2vxoViX4FPOcxVcjAtga1lW14zVE"
+TOKEN = os.environ.get("bot_token")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
