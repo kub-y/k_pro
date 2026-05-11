@@ -132,4 +132,4 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-MAX_BOT_TOKEN = "f9LHodD0cOLzBrjTEdNthgfvCzKPHzp6suQuO14eCJWqnwpOCERXyNan2vxoViX4FPOcxVcjAtga1lW14zVE"
+MAX_BOT_TOKEN = os.environ.get("bot_token")
