@@ -21,10 +21,8 @@ dp = Dispatcher()
 user_states = {}
 BANNED_WORDS = ["спам", "реклама", "мат"]
 
-# Вспомогательная функция проверки состояния пользователя для MagicFilter
 class StateMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
-        # Определяем ID пользователя в зависимости от типа события
         if isinstance(event, MessageCreated):
             user_id = event.message.sender.user_id
         elif isinstance(event, MessageCallback):
@@ -32,13 +30,10 @@ class StateMiddleware(BaseMiddleware):
         else:
             user_id = None
 
-        # Прокидываем текущее состояние в data, чтобы хендлеры имели к нему доступ
         data["state"] = user_states.get(user_id) if user_id else None
         
-        # Передаем управление дальше по цепочке
         return await handler(event, data)
 
-# Регистрируем middleware в диспетчере
 dp.outer_middleware(StateMiddleware())
 
 async def show_main_menu(event: MessageCreated, text="Выберите действие:"):
@@ -53,7 +48,6 @@ async def get_db_user(user_id):
         lambda: BotUser.objects.select_related('group').filter(max_user_id=user_id).first()
     )()
 
-# 1. ЕСЛИ СОСТОЯНИЕ: Ожидание группы
 @dp.message_created(F.data.state == "waiting_group")
 async def handler_waiting_group(event: MessageCreated, state: str | None):
     user_id = event.message.sender.user_id
@@ -78,7 +72,6 @@ async def handler_waiting_group(event: MessageCreated, state: str | None):
         await event.message.answer("Группа не найдена или неактивна. Попробуйте еще раз:")
 
 
-# 2. ЕСЛИ СОСТОЯНИЕ: Ожидание обратной связи
 @dp.message_created(F.data.state == "waiting_feedback")
 async def handler_waiting_feedback(event: MessageCreated, state: str | None):
     user_id = event.message.sender.user_id
@@ -100,7 +93,6 @@ async def handler_waiting_feedback(event: MessageCreated, state: str | None):
     await show_main_menu(event)
 
 
-# 3. ЕСЛИ СОСТОЯНИЕ: Ожидание вопроса студента
 @dp.message_created(F.data.state == "waiting_question")
 async def handler_waiting_question(event: MessageCreated, state: str | None):
     user_id = event.message.sender.user_id
@@ -118,12 +110,10 @@ async def handler_waiting_question(event: MessageCreated, state: str | None):
     await show_main_menu(event)
 
 
-# 4. БАЗОВОЕ СОСТОЯНИЕ (Default хендлер для тех, у кого состояние None или registered)
 @dp.message_created()
 async def handler_default_router(event: MessageCreated, state: str | None):
     user_id = event.message.sender.user_id
     
-    # Игнорируем сообщения, если пользователь находится в других активных стейтах
     if state not in [None, "registered"]:
         return
 
@@ -133,12 +123,10 @@ async def handler_default_router(event: MessageCreated, state: str | None):
         await show_main_menu(event)
         return
 
-    # Если пользователя нет в базе — отправляем на стартовую регистрацию
     builder = InlineKeyboardBuilder()
     builder.row(CallbackButton(text="Студент", payload="set_student"))
     builder.row(CallbackButton(text="Абитуриент", payload="set_applicant"))
     await event.message.answer("Здравствуй! Выбери, кто ты?:", attachments=[builder.as_markup()])
-##pass
 
 @dp.message_callback(F.callback.payload == "set_student")
 async def cb_set_student(event: MessageCallback):
@@ -177,13 +165,11 @@ async def cb_get_faq(event: MessageCallback):
     await show_main_menu(event)
 
 async def start_bot():
-    # 1. Принудительно удаляем старые вебхуки, иначе Polling не будет получать события
     try:
         await bot.delete_webhook()
     except Exception as e:
         print(f"Удаление вебхука не удалось: {e}")
 
-    # 2. Запускаем опрос сервера
     print("Бот MAX успешно запущен...")
     await dp.start_polling(bot)
 
