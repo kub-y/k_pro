@@ -1,6 +1,5 @@
 django
 psycopg2
 maxapi
-asgiref
 requests
 pillow
