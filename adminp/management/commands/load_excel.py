@@ -3,10 +3,9 @@ from django.core.management.base import BaseCommand
 from adminp.models import KnowledgeBase, UniversityGroups
 
 class Command(BaseCommand):
-    help = 'Импортирует данные из Excel по структуре: question, answer, target_groups, file, is_faq'
 
     def add_arguments(self, parser):
-        parser.add_argument('file_path', type=str, help='Путь к файлу Excel (.xlsx)')
+        parser.add_argument('file_path', type=str)
 
     def handle(self, *args, **options):
         file_path = options['file_path']
