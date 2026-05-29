@@ -1,4 +1,5 @@
 import os
+import re
 import asyncio
 import logging
 from django.core.management.base import BaseCommand
@@ -11,7 +12,7 @@ from maxapi.types.attachments.buttons import CallbackButton
 
 from asgiref.sync import sync_to_async
 from adminp.services import find_answer_for_user, register_max_user, save_feedback, get_faq_list
-from adminp.models import BotUser, UniversityGroups
+from adminp.models import BotUser, UniversityGroups, BannedWord
 
 logging.basicConfig(level=logging.INFO)
 TOKEN = os.environ.get("bot_token")
@@ -19,7 +20,6 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 user_states = {}
-BANNED_WORDS = ["спам", "реклама", "мат"]
 
 class StateMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
@@ -82,7 +82,15 @@ async def handler_waiting_feedback(event: MessageCreated, state: str | None):
         await show_main_menu(event)
         return
 
-    if any(bad_word in text.lower() for bad_word in BANNED_WORDS):
+    banned_words_list = await sync_to_async(
+        lambda: list(BannedWord.objects.values_list('word', flat=True))
+    )()
+
+    clean_text = re.sub(r'[^\w\s]', '', text.lower())
+    user_words = set(clean_text.split())
+
+    intersection = user_words.intersection(banned_words_list)
+    if intersection:
         await event.message.answer("Ваше сообщение содержит недопустимые слова. Попробуйте еще раз.")
         await show_main_menu(event)
         return

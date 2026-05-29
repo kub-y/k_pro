@@ -3,13 +3,13 @@ from django.contrib import admin
 from django.utils import timezone
 from django.conf import settings
 from django.contrib import messages
-from .models import KnowledgeBase, BotUser, Feedback, UniversityGroups, MassNotification, UserQueryLog
+from .models import KnowledgeBase, BotUser, Feedback, UniversityGroups, MassNotification, UserQueryLog, BannedWord
 
 @admin.register(KnowledgeBase)
 class KnowledgeBaseAdmin(admin.ModelAdmin):
-    list_display = ('question', 'get_target_groups', 'is_faq', 'has_file')
+    list_display = ('faq_question', 'get_target_groups', 'is_faq', 'has_file')
     list_filter = ('is_faq', 'target_groups')
-    search_fields = ('question', 'answer')
+    search_fields = ('question', 'faq_question', 'answer')
     filter_horizontal = ('target_groups',)
     exclude = ('search_vector',)
 
@@ -129,3 +129,8 @@ class UserQueryLogAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+@admin.register(BannedWord)
+class BannedWordAdmin(admin.ModelAdmin):
+    list_display = ('word',)
+    search_fields = ('word',)

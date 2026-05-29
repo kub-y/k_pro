@@ -11,13 +11,14 @@ class UniversityGroups(models.Model):
 
     class Meta:
         verbose_name = "Учебную группу"
-        verbose_name_plural = "Учебные группы"
+        verbose_name_plural = "5.Учебные группы"
 
     def __str__(self):
         return self.name
 
 class KnowledgeBase(models.Model):
-    question = models.CharField(max_length=255, verbose_name="Вопрос")
+    faq_question = models.CharField(max_length=255, verbose_name="Вопрос")
+    question = models.TextField(verbose_name="Расширенный вопрос")
     answer = models.TextField(verbose_name="Ответ")
     file = models.FileField(upload_to='bot_files/', null=True, blank=True, verbose_name="Прикреплённый файл")
     target_groups = models.ManyToManyField(UniversityGroups, blank=True, verbose_name="Кому доступен вопрос", help_text="Выберите группы (в т.ч. 'Абитуриенты'). Если пусто — доступно всем.")
@@ -26,7 +27,7 @@ class KnowledgeBase(models.Model):
     
     class Meta:
         verbose_name = "Вопрос"
-        verbose_name_plural = "Список вопросов"
+        verbose_name_plural = "3.Список вопросов"
         indexes = [GinIndex(fields=['search_vector'])]
     def __str__(self):
         return self.question
@@ -38,7 +39,7 @@ class BotUser(models.Model):
 
     class Meta:
         verbose_name = "Пользователя MAX"
-        verbose_name_plural = "Пользователи MAX"
+        verbose_name_plural = "4.Пользователи MAX"
 
     def __str__(self):
         group_name = self.group.name if self.group else "Без группы"
@@ -54,7 +55,7 @@ class Feedback(models.Model):
 
     class Meta:
         verbose_name = "Заявку"
-        verbose_name_plural = "Обратная связь"
+        verbose_name_plural = "1.Обратная связь"
     def __str__(self):
         return f"Отзыв от {self.user.max_user_id} ({self.created_at.strftime('%d.%m %H:%M')})"
 
@@ -68,7 +69,7 @@ class MassNotification(models.Model):
 
     class Meta:
         verbose_name = "Рассылку"
-        verbose_name_plural = "Массовые рассылки"
+        verbose_name_plural = "2.Массовые рассылки"
 
     def __str__(self):
         return f"{self.title} ({self.created_at.strftime('%d.%m.%Y %H:%M')})"
@@ -81,11 +82,27 @@ class UserQueryLog(models.Model):
 
     class Meta:
         verbose_name = "Лог запроса"
-        verbose_name_plural = "Логи запросов"
+        verbose_name_plural = "7.Логи запросов"
 
     def __str__(self):
         status = "Отвечено" if self.is_answered else "Не отвечено"
         return f"{self.user.max_user_id}: {self.query_text[:30]}... ({status})"
+
+class BannedWord(models.Model):
+    word = models.CharField("Запрещенное слово", max_length=100, unique=True, help_text="Вносите слова в нижнем регистре и в начальной форме")
+    created_at = models.DateTimeField("Дата добавления", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Запрещенное слово"
+        verbose_name_plural = "6.Запрещенные слова"
+        ordering = ['word']
+
+    def __str__(self):
+        return self.word
+
+    def save(self, *args, **kwargs):
+        self.word = self.word.strip().lower()
+        super().save(*args, **kwargs)
 
 @receiver(post_migrate)
 def create_default_groups(sender, **kwargs):

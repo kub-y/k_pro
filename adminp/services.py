@@ -64,14 +64,14 @@ def get_faq_list(user_group_name):
         ).distinct()
         header = "**Список частых вопросов для студентов:**\n\n"
 
-    faqs_list = list(faqs.order_by('question')[:5])
+    faqs_list = list(faqs.order_by('faq_question')[:5])
     
     if not faqs_list:
         return "Список часто задаваемых вопросов пока пуст."
     
     text = header
     for idx, item in enumerate(faqs_list, 1):
-        text += f"{idx}. {item.question}\n"
+        text += f"{idx}. {item.faq_question}\n"
     
     text += "\nЧтобы получить ответ, нажмите 'Задать вопрос' и напишите его в чат."
     return text
