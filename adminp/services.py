@@ -16,13 +16,11 @@ def find_answer_for_user(user_query, user_id, user_group_name=None):
         group_filter
     ).filter(rank__gte=0.01).order_by('-rank').distinct()
 
-    is_answered = False
     best_match = results.first()
-    if best_match:
-        is_answered = True
-    if not is_answered:
-        user_obj = BotUser.objects.get(max_user_id=user_id)
-        UserQueryLog.objects.create(user=user_obj, query_text=user_query, is_answered=False)
+    is_answered = bool(best_match)
+
+    user_obj = BotUser.objects.get(max_user_id=user_id)
+    UserQueryLog.objects.create(user=user_obj, query_text=user_query, is_answered=is_answered, knowledge_base=best_match if is_answered else None)
 
     if best_match:
         return {

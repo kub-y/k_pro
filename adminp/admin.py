@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.conf import settings
 from django.contrib import messages
+from django.db.models import Count
 from .models import KnowledgeBase, BotUser, Feedback, UniversityGroups, MassNotification, UserQueryLog, BannedWord
 
 @admin.register(KnowledgeBase)
@@ -122,14 +123,32 @@ class MassNotificationAdmin(admin.ModelAdmin):
 
 @admin.register(UserQueryLog)
 class UserQueryLogAdmin(admin.ModelAdmin):
-    list_display = ('user', 'query_text', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('query_text', 'user__max_user_id')
-    readonly_fields = ('user', 'query_text', 'created_at')
+    list_display = ('user', 'query_text', 'get_faq_question', 'get_query_count', 'is_answered', 'created_at')
+    list_filter = ('is_answered', 'created_at')
+    search_fields = ('query_text', 'user__max_user_id', 'knowledge_base__faq_question')
+    readonly_fields = ('user', 'query_text', 'knowledge_base', 'is_answered', 'created_at')
 
     def has_add_permission(self, request):
         return False
 
+    @admin.display(description='Вопрос из списка частых')
+    def get_faq_question(self, obj):
+        if obj.knowledge_base:
+            return obj.knowledge_base.faq_question
+        return "— (Ответ не найден)"
+
+    @admin.display(description='Повторений вопроса')
+    def get_query_count(self, obj):
+        return getattr(obj, 'similar_queries_count', 0)
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        
+        queryset = queryset.select_related('knowledge_base', 'user').annotate(
+            similar_queries_count=Count('knowledge_base__userquerylog')
+        )
+        return queryset
+    
 @admin.register(BannedWord)
 class BannedWordAdmin(admin.ModelAdmin):
     list_display = ('word',)

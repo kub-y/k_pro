@@ -77,6 +77,7 @@ class MassNotification(models.Model):
 class UserQueryLog(models.Model):
     user = models.ForeignKey('BotUser', on_delete=models.CASCADE, verbose_name="Пользователь")
     query_text = models.CharField(max_length=255, verbose_name="Текст запроса")
+    knowledge_base = models.ForeignKey('KnowledgeBase', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Найденный ответ")
     is_answered = models.BooleanField(default=False, verbose_name="Ответ найден")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата запроса")
 
