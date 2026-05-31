@@ -10,7 +10,6 @@ from maxapi.types import MessageCreated, MessageCallback, InputMedia
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from maxapi.types.attachments.buttons import CallbackButton
 
-from asgiref.sync import sync_to_async
 from adminp.services import find_answer_for_user, register_max_user, save_feedback, get_faq_list
 from adminp.models import BotUser, UniversityGroups, BannedWord
 
@@ -33,9 +32,7 @@ async def show_main_menu(event: MessageCreated, text="Выберите дейс�
     await event.message.answer(text, attachments=[builder.as_markup()])
 
 async def get_db_user(user_id):
-    return await sync_to_async(
-        lambda: BotUser.objects.select_related('group').filter(max_user_id=user_id).first()
-    )()
+    return await BotUser.objects.select_related('group').filter(max_user_id=user_id).afirst()
 
 @dp.message_created(F.message.body.text.lower().in_(["начать", "старт", "start", "/start"]))
 async def handler_reset_state(event: MessageCreated, context: MemoryContext):
@@ -62,9 +59,7 @@ async def handler_waiting_group(event: MessageCreated, context: MemoryContext):
     print(f"[LOG] Сообщение от {user_id} | Текст: '{text}' | Текущий стейт: '{context}'")
     
     entered_group = text.upper()
-    group_exists = await sync_to_async(
-        lambda: UniversityGroups.objects.filter(name=entered_group, is_active=True).exists()
-    )()
+    group_exists = await UniversityGroups.objects.filter(name=entered_group, is_active=True).aexists()
     
     if group_exists:
         await context.set_state(UserStates.registered)
@@ -89,9 +84,7 @@ async def handler_waiting_feedback(event: MessageCreated, context: MemoryContext
         await show_main_menu(event)
         return
 
-    banned_words_list = await sync_to_async(
-        lambda: list(BannedWord.objects.values_list('word', flat=True))
-    )()
+    banned_words_list = [word async for word in BannedWord.objects.values_list('word', flat=True)]
 
     clean_text = re.sub(r'[^\w\s]', '', text.lower())
     user_words = set(clean_text.split())

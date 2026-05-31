@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.conf import settings
 from django.contrib import messages
-from django.db.models import Count
+from django.db.models import Count, OuterRef, Subquery, IntegerField
 from .models import KnowledgeBase, BotUser, Feedback, UniversityGroups, MassNotification, UserQueryLog, BannedWord
 
 @admin.register(KnowledgeBase)
@@ -135,17 +135,23 @@ class UserQueryLogAdmin(admin.ModelAdmin):
     def get_faq_question(self, obj):
         if obj.knowledge_base:
             return obj.knowledge_base.faq_question
-        return "— (Ответ не найден)"
+        return " — (Ответ не найден)"
 
-    @admin.display(description='Повторений вопроса')
+    @admin.display(description='Повторений вопроса', ordering='similar_queries_count')
     def get_query_count(self, obj):
         return getattr(obj, 'similar_queries_count', 0)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         
+        count_subquery = UserQueryLog.objects.filter(
+            knowledge_base=OuterRef('knowledge_base')
+        ).values('knowledge_base').annotate(
+            total=Count('id')
+        ).values('total')
+
         queryset = queryset.select_related('knowledge_base', 'user').annotate(
-            similar_queries_count=Count('knowledge_base__userquerylog')
+            similar_queries_count=Subquery(count_subquery, output_field=IntegerField())
         )
         return queryset
     
