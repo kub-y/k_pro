@@ -1,6 +1,0 @@
-django
-psycopg2
-maxapi
-requests
-pillow
-openpyxl
